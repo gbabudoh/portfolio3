@@ -14,8 +14,8 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="container pb-16 pt-16 sm:pb-20 sm:pt-24 lg:pt-32">
-        <div className="max-w-4xl animate-fade-up space-y-8">
+      <section className="container pb-16 pt-8 sm:pb-20 sm:pt-12 lg:pt-16">
+        <div className="max-w-4xl animate-fade-up space-y-6 sm:space-y-7">
           <p className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm text-muted">
             <span className="relative flex size-2" aria-hidden="true">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />
@@ -42,7 +42,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="mt-16 animate-fade-up [animation-delay:120ms] sm:mt-20">
+        <div className="mt-12 animate-fade-up [animation-delay:120ms] sm:mt-14">
           <StatStrip stats={stats} />
         </div>
       </section>

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 export function Section({ className, children, ...props }) {
   return (
-    <section className={cn('py-20 sm:py-24 lg:py-28', className)} {...props}>
+    <section className={cn('py-14 sm:py-24 lg:py-28', className)} {...props}>
       <div className="container">{children}</div>
     </section>
   );
@@ -28,7 +28,7 @@ export function SectionHeader({ eyebrow, title, description, action, className }
 export function PageHeader({ eyebrow, title, description, children }) {
   return (
     <div className="border-b border-border">
-      <div className="container py-16 sm:py-20 lg:py-24">
+      <div className="container py-12 sm:py-20 lg:py-24">
         <div className="max-w-3xl animate-fade-up space-y-5">
           {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <h1 className="text-h1">{title}</h1>

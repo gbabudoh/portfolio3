@@ -68,6 +68,7 @@ export function getStats() {
   // "production_projects" is derived from the projects table so it never goes stale.
   return stats.map((s) => ({
     id: s.id,
+    key: s.key,
     label: s.label,
     value: s.key === 'production_projects' && projectCount > 0 ? `${projectCount}+` : s.value,
   }));
@@ -122,5 +123,28 @@ export function getSkillGroups() {
     (index === -1 ? other : groups[index]).skills.push(skill.name);
   }
 
-  return [...groups, other].filter((g) => g.skills.length > 0);
+  return [...groups, other]
+    .filter((g) => g.skills.length > 0)
+    .map((g) => {
+      const entries = g.skills.map(parseSkillEntry);
+      return {
+        name: g.name,
+        id: slugify(g.name),
+        entries,
+        count: entries.reduce((n, e) => n + e.items.length, 0),
+      };
+    });
+}
+
+// "Frameworks: Express, Django (Python), .NET (C#)" -> { label, items[] }.
+// Splits on commas that aren't inside parentheses and drops trailing full stops.
+function parseSkillEntry(text) {
+  const split = text.indexOf(':');
+  const label = split > 0 ? text.slice(0, split).trim() : null;
+  const rest = split > 0 ? text.slice(split + 1) : text;
+  const items = rest
+    .split(/,(?![^(]*\))/)
+    .map((item) => item.trim().replace(/\.$/, ''))
+    .filter(Boolean);
+  return { label, items };
 }

@@ -2,7 +2,9 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { getAdminCredentials, getSession } from '@/lib/auth';
 import { formatDateTime } from '@/lib/format';
 import { mainNav, site } from '@/lib/site';
+import { getIntegrationSettings } from '@/lib/settings';
 import { AdminPageHeader, Card, CardHeader } from '@/components/admin/primitives';
+import { IntegrationsForm } from '@/components/admin/integrations-form';
 
 export const metadata = { title: 'Settings' };
 
@@ -35,6 +37,7 @@ export default async function SettingsPage() {
   const session = await getSession();
   const credentials = getAdminCredentials();
   const secret = process.env.SESSION_SECRET || '';
+  const integrations = getIntegrationSettings();
 
   const checks = [
     {
@@ -65,6 +68,11 @@ export default async function SettingsPage() {
             <Row label="Username">{session?.username}</Row>
             <Row label="Session expires">{session ? formatDateTime(session.expiresAt) : '—'}</Row>
           </dl>
+        </Card>
+
+        <Card>
+          <CardHeader title="Analytics & tracking" description="Connect Google Analytics and Microsoft Clarity to the public site." />
+          <IntegrationsForm initial={integrations} />
         </Card>
 
         <Card>
