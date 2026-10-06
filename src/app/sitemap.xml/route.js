@@ -1,39 +1,36 @@
+import { site } from '@/lib/site';
+import { getProjects } from '@/lib/content';
+
+export const revalidate = 3600;
+
 export async function GET() {
-  const baseUrl = 'https://godwinportfolio.com';
-  
-  const staticPages = [
-    {
-      url: '',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 1.0,
-    },
-    {
-      url: '/admin',
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-    },
+  const now = new Date().toISOString();
+  const pages = [
+    { path: '', priority: 1.0, changefreq: 'monthly', lastmod: now },
+    { path: '/work', priority: 0.9, changefreq: 'weekly', lastmod: now },
+    { path: '/about', priority: 0.8, changefreq: 'monthly', lastmod: now },
+    { path: '/contact', priority: 0.6, changefreq: 'yearly', lastmod: now },
+    ...getProjects().map((p) => ({
+      path: `/work/${p.slug}`,
+      priority: 0.7,
+      changefreq: 'monthly',
+      lastmod: p.createdAt ? new Date(`${p.createdAt.replace(' ', 'T')}Z`).toISOString() : now,
+    })),
   ];
 
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${staticPages
-    .map(
-      (page) => `
-  <url>
-    <loc>${baseUrl}${page.url}</loc>
-    <lastmod>${page.lastModified.toISOString()}</lastmod>
-    <changefreq>${page.changeFrequency}</changefreq>
-    <priority>${page.priority}</priority>
+${pages
+  .map(
+    (p) => `  <url>
+    <loc>${site.url}${p.path}</loc>
+    <lastmod>${p.lastmod}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority.toFixed(1)}</priority>
   </url>`
-    )
-    .join('')}
+  )
+  .join('\n')}
 </urlset>`;
 
-  return new Response(sitemap, {
-    headers: {
-      'Content-Type': 'application/xml',
-    },
-  });
+  return new Response(xml, { headers: { 'Content-Type': 'application/xml' } });
 }

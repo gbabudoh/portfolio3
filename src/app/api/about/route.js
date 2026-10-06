@@ -1,3 +1,4 @@
+import { refreshSite } from '@/lib/revalidate';
 import { getDatabase } from '@/lib/database';
 
 export async function GET() {
@@ -46,6 +47,7 @@ export async function POST(request) {
         .run(section, title, content);
     }
     
+    refreshSite();
     return Response.json({ success: true });
   } catch (error) {
     console.error('Error updating about content:', error);

@@ -1,8 +1,9 @@
+import { refreshSite } from '@/lib/revalidate';
 import { getDatabase } from '@/lib/database';
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { key, value, label, color, display_order } = body;
     
@@ -12,6 +13,7 @@ export async function PUT(request, { params }) {
     ).run(key, value, label, color, display_order, id);
     
     if (result.changes > 0) {
+      refreshSite();
       return Response.json({ success: true, message: 'Stat updated successfully' });
     } else {
       return Response.json({ success: false, error: 'Stat not found' }, { status: 404 });
@@ -24,12 +26,13 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const db = getDatabase();
     const result = db.prepare('DELETE FROM stats WHERE id = ?').run(id);
     
     if (result.changes > 0) {
+      refreshSite();
       return Response.json({ success: true, message: 'Stat deleted successfully' });
     } else {
       return Response.json({ success: false, error: 'Stat not found' }, { status: 404 });

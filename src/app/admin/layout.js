@@ -1,12 +1,8 @@
 export const metadata = {
-  title: 'Admin Panel - Portfolio',
-  description: 'Admin panel for managing portfolio content',
+  title: { default: 'Admin', template: '%s · Admin' },
+  robots: { index: false, follow: false },
 };
 
 export default function AdminLayout({ children }) {
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {children}
-    </div>
-  );
+  return children;
 }

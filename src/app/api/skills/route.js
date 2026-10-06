@@ -1,3 +1,4 @@
+import { refreshSite } from '@/lib/revalidate';
 import { getDatabase } from '@/lib/database';
 
 export async function GET() {
@@ -22,6 +23,7 @@ export async function POST(request) {
       'INSERT INTO skills (name, category, proficiency, icon, description) VALUES (?, ?, ?, ?, ?)'
     ).run(name, category, proficiency, icon, description);
     
+    refreshSite();
     return Response.json({ success: true, id: result.lastInsertRowid });
   } catch (error) {
     console.error('Error creating skill:', error);

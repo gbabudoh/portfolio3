@@ -1,369 +1,221 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Mail, Eye, Trash2, CheckCircle, Clock, X, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Inbox, Mail, MailOpen, Reply, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/cn';
+import { formatDateTime, formatRelative } from '@/lib/format';
+import { Button, ButtonLink } from '@/components/ui/button';
+import {
+  AdminPageHeader,
+  Card,
+  EmptyState,
+  SearchInput,
+  SkeletonRows,
+  api,
+  useConfirm,
+  useToast,
+} from '@/components/admin/ui';
 
-export default function AdminMessages() {
+const notifyShell = () => window.dispatchEvent(new Event('admin:inbox-changed'));
+
+export default function InboxPage() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [messages, setMessages] = useState([]);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('all');
+  const [query, setQuery] = useState('');
+  const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
-    fetchMessages();
-  }, []);
+    api('/api/contact')
+      .then(({ data }) => setMessages(data))
+      .catch((err) => toast(err.message, 'error'))
+      .finally(() => setLoading(false));
+  }, [toast]);
 
-  const fetchMessages = async () => {
-    try {
-      const response = await fetch('/api/contact');
-      const data = await response.json();
-      if (data.success) {
-        // Convert read field from 0/1 to boolean
-        const messagesWithBooleanRead = data.data.map(msg => ({
-          ...msg,
-          read: Boolean(msg.read)
-        }));
-        setMessages(messagesWithBooleanRead);
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
+  const unread = messages.filter((m) => !m.read).length;
 
-  const refreshMessages = async () => {
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    
-    try {
-      await fetchMessages();
-      setSuccess('Messages refreshed successfully');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      setError('Failed to refresh messages');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (id) => {
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    
-    try {
-      const response = await fetch(`/api/contact/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ read: true }),
-      });
-
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        // Update the local state immediately for better UX
-        setMessages(prevMessages => 
-          prevMessages.map(msg => 
-            msg.id === id ? { ...msg, read: true } : msg
-          )
-        );
-        
-        // Update selected message if it's the one being marked as read
-        if (selectedMessage?.id === id) {
-          setSelectedMessage(prev => ({ ...prev, read: true }));
-        }
-        
-        setSuccess('Message marked as read');
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError(data.error || 'Failed to mark message as read');
-        // Fallback to refetch if local update fails
-        fetchMessages();
-      }
-    } catch (error) {
-      console.error('Error marking message as read:', error);
-      setError('Network error. Please try again.');
-      // Fallback to refetch on error
-      fetchMessages();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteMessage = async (id) => {
-    if (confirm('Are you sure you want to delete this message?')) {
-      try {
-        const response = await fetch(`/api/contact/${id}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          fetchMessages();
-          if (selectedMessage?.id === id) {
-            setSelectedMessage(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error deleting message:', error);
-      }
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return messages.filter((m) => {
+      if (view === 'unread' && m.read) return false;
+      if (!q) return true;
+      return [m.name, m.email, m.subject, m.message].some((v) => v?.toLowerCase().includes(q));
     });
-  };
+  }, [messages, view, query]);
 
-  const unreadCount = messages.filter(msg => !msg.read).length;
+  const selected = messages.find((m) => m.id === selectedId) || null;
+
+  const setRead = useCallback(
+    async (message, read) => {
+      setMessages((list) => list.map((m) => (m.id === message.id ? { ...m, read: read ? 1 : 0 } : m)));
+      try {
+        await api(`/api/contact/${message.id}`, { method: 'PUT', body: { read } });
+        notifyShell();
+      } catch (err) {
+        setMessages((list) => list.map((m) => (m.id === message.id ? { ...m, read: message.read } : m)));
+        toast(err.message, 'error');
+      }
+    },
+    [toast]
+  );
+
+  function open(message) {
+    setSelectedId(message.id);
+    if (!message.read) setRead(message, true);
+  }
+
+  async function remove(message) {
+    const ok = await confirm({
+      title: 'Delete message?',
+      description: `The message from ${message.name} will be permanently deleted.`,
+    });
+    if (!ok) return;
+    try {
+      await api(`/api/contact/${message.id}`, { method: 'DELETE' });
+      setMessages((list) => list.filter((m) => m.id !== message.id));
+      setSelectedId(null);
+      notifyShell();
+      toast('Message deleted');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Contact Messages
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
-              Manage contact form submissions from your portfolio
-            </p>
-          </div>
-          
-          {/* Refresh Button */}
-          <button
-            onClick={refreshMessages}
-            disabled={loading}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
-          </button>
-        </div>
-        
-        {unreadCount > 0 && (
-          <div className="mt-4 inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
-            <Mail className="w-4 h-4 mr-2" />
-            {unreadCount} unread message{unreadCount !== 1 ? 's' : ''}
-          </div>
-        )}
-        
-        {/* Success/Error Messages */}
-        {success && (
-          <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg text-sm font-medium">
-            <CheckCircle className="w-4 h-4 mr-2" />
-            {success}
-          </div>
-        )}
-        {error && (
-          <div className="mt-4 inline-flex items-center px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg text-sm font-medium">
-            <X className="w-4 h-4 mr-2" />
-            {error}
-          </div>
-        )}
-      </div>
+    <>
+      <AdminPageHeader
+        title="Inbox"
+        description={loading ? 'Loading…' : `${messages.length} messages · ${unread} unread`}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Messages List */}
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  All Messages ({messages.length})
-                </h3>
+      <Card className="grid min-h-[560px] overflow-hidden lg:grid-cols-[360px_1fr]">
+        {/* List */}
+        <div className={cn('flex flex-col border-border lg:border-r', selected && 'hidden lg:flex')}>
+          <div className="space-y-3 border-b border-border p-3">
+            <SearchInput value={query} onChange={setQuery} placeholder="Search messages…" />
+            <div role="tablist" aria-label="Filter messages" className="grid grid-cols-2 rounded-md bg-subtle p-1 text-sm">
+              {[
+                ['all', `All`],
+                ['unread', `Unread${unread ? ` (${unread})` : ''}`],
+              ].map(([key, label]) => (
                 <button
-                  onClick={refreshMessages}
-                  disabled={loading}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh messages"
+                  key={key}
+                  role="tab"
+                  type="button"
+                  aria-selected={view === key}
+                  onClick={() => setView(key)}
+                  className={cn(
+                    'h-8 rounded font-medium transition-colors',
+                    view === key ? 'bg-background text-foreground shadow-sm' : 'text-muted hover:text-foreground'
+                  )}
                 >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  {label}
                 </button>
-              </div>
-            </div>
-            
-            <div className="max-h-96 overflow-y-auto">
-              {messages.length === 0 ? (
-                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                  No messages yet
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      onClick={() => setSelectedMessage(message)}
-                      className={`p-4 cursor-pointer transition-colors duration-200 ${
-                        selectedMessage?.id === message.id
-                          ? 'bg-blue-50 dark:bg-blue-900/20'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                      } ${!message.read ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {message.name}
-                            </p>
-                            {!message.read && (
-                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200">
-                                New
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                            {message.subject}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            {formatDate(message.created_at)}
-                          </p>
-                        </div>
-                        <div className="flex space-x-2 ml-2">
-                          {!message.read && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsRead(message.id);
-                              }}
-                              disabled={loading}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Mark as read"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteMessage(message.id);
-                            }}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                            title="Delete message"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Message Detail */}
-        <div className="lg:col-span-2">
-          {selectedMessage ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Message Details
-                  </h3>
-                  <div className="flex items-center space-x-2">
-                    {!selectedMessage.read && (
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Unread
-                      </span>
-                    )}
-                    <button
-                      onClick={() => deleteMessage(selectedMessage.id)}
-                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      title="Delete message"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6 space-y-6">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    From
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedMessage.name}
-                    </p>
-                    <p className="text-blue-600 dark:text-blue-400">
-                      {selectedMessage.email}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    Subject
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedMessage.subject}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    Message
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
-                      {selectedMessage.message}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    Received
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-gray-900 dark:text-white">
-                      {formatDate(selectedMessage.created_at)}
-                    </p>
-                  </div>
-                </div>
-
-                {!selectedMessage.read && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => markAsRead(selectedMessage.id)}
-                      disabled={loading}
-                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>{loading ? 'Marking...' : 'Mark as Read'}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+          {loading ? (
+            <SkeletonRows rows={6} />
+          ) : visible.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title={messages.length === 0 ? 'No messages yet' : 'Nothing here'}
+              description={messages.length === 0 ? 'Contact form submissions will appear here.' : 'No messages match this view.'}
+            />
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 text-center">
-              <Mail className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Select a Message
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Choose a message from the list to view its details
-              </p>
-            </div>
+            <ul className="flex-1 divide-y divide-border overflow-y-auto lg:max-h-[640px]">
+              {visible.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => open(m)}
+                    aria-current={m.id === selectedId ? 'true' : undefined}
+                    className={cn(
+                      'flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface',
+                      m.id === selectedId && 'bg-subtle hover:bg-subtle'
+                    )}
+                  >
+                    <span
+                      className={cn('mt-1.5 size-2 shrink-0 rounded-full', m.read ? 'bg-transparent' : 'bg-accent')}
+                      aria-label={m.read ? undefined : 'Unread'}
+                    />
+                    <span className="min-w-0 flex-1 space-y-0.5">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className={cn('truncate text-sm', m.read ? 'text-muted' : 'font-semibold')}>{m.name}</span>
+                        <span className="shrink-0 text-xs text-muted">{formatRelative(m.created_at)}</span>
+                      </span>
+                      <span className={cn('block truncate text-sm', !m.read && 'font-medium')}>{m.subject}</span>
+                      <span className="block truncate text-xs text-muted">{m.message}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-      </div>
-    </div>
+
+        {/* Detail */}
+        <div className={cn('flex flex-col', !selected && 'hidden lg:flex')}>
+          {selected ? (
+            <>
+              <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 sm:px-5">
+                <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setSelectedId(null)} aria-label="Back to messages">
+                  <ArrowLeft />
+                </Button>
+                <div className="ml-auto flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRead(selected, !selected.read)}
+                  >
+                    {selected.read ? <Mail /> : <MailOpen />}
+                    <span className="hidden sm:inline">{selected.read ? 'Mark unread' : 'Mark read'}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(selected)}
+                    className="hover:bg-danger/10 hover:text-danger"
+                  >
+                    <Trash2 />
+                    <span className="hidden sm:inline">Delete</span>
+                  </Button>
+                </div>
+              </div>
+              <article className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-8">
+                <header className="space-y-4">
+                  <h2 className="text-xl font-semibold tracking-tight">{selected.subject}</h2>
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-sm font-semibold uppercase text-accent-text">
+                      {selected.name.charAt(0)}
+                    </span>
+                    <div className="min-w-0 text-sm">
+                      <p className="font-medium">{selected.name}</p>
+                      <a href={`mailto:${selected.email}`} className="link break-all text-xs">{selected.email}</a>
+                    </div>
+                    <time className="ml-auto shrink-0 text-xs text-muted" dateTime={selected.created_at}>
+                      {formatDateTime(selected.created_at)}
+                    </time>
+                  </div>
+                </header>
+                <p className="whitespace-pre-wrap text-pretty leading-relaxed">{selected.message}</p>
+                <ButtonLink
+                  href={`mailto:${selected.email}?subject=${encodeURIComponent(`Re: ${selected.subject}`)}`}
+                  external
+                >
+                  <Reply />
+                  Reply by email
+                </ButtonLink>
+              </article>
+            </>
+          ) : (
+            <EmptyState icon={Mail} title="Select a message" description="Choose a message from the list to read it." />
+          )}
+        </div>
+      </Card>
+    </>
   );
 }

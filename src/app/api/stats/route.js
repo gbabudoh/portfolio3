@@ -1,3 +1,4 @@
+import { refreshSite } from '@/lib/revalidate';
 import { getDatabase } from '@/lib/database';
 
 export async function GET() {
@@ -26,6 +27,7 @@ export async function POST(request) {
       'INSERT INTO stats (key, value, label, color, display_order) VALUES (?, ?, ?, ?, ?)'
     ).run(key, value, label, color || 'blue', display_order || 0);
     
+    refreshSite();
     return Response.json({ success: true, id: result.lastInsertRowid });
   } catch (error) {
     console.error('Error creating stat:', error);

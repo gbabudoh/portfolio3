@@ -1,150 +1,82 @@
-import { Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { ThemeProvider } from 'next-themes';
 import './globals.css';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import AnalyticsScript from '@/components/AnalyticsScript';
+import { site } from '@/lib/site';
 
-const inter = Inter({ subsets: ['latin'] });
+const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
+
+const description =
+  'Full-stack engineer and solution architect building scalable SaaS, web, mobile and commerce platforms with React, Next.js, Node.js and an AI-native workflow.';
 
 export const metadata = {
+  metadataBase: new URL(site.url),
   title: {
-    default: 'Godwin - AI-Enhanced Full-Stack Developer & Solution Architect',
-    template: '%s | Godwin Portfolio'
+    default: `${site.name} — ${site.role}`,
+    template: `%s · ${site.name}`,
   },
-  description: 'Professional portfolio showcasing full-stack development, mobile apps, e-commerce solutions, and AI-enhanced development workflows. 4+ years experience in React.js, Vue.js, Next.js, Node.js, and modern web technologies.',
+  description,
   keywords: [
     'full-stack developer',
-    'web developer',
-    'React.js developer',
-    'Vue.js developer',
-    'Next.js developer',
-    'Node.js developer',
-    'mobile app developer',
-    'e-commerce developer',
-    'AI-enhanced development',
     'solution architect',
-    'portfolio',
-    'freelance developer',
-    'JavaScript developer',
-    'TypeScript developer',
-    'React Native developer'
+    'Next.js developer',
+    'React developer',
+    'Node.js developer',
+    'React Native developer',
+    'SaaS development',
+    'e-commerce development',
+    'AI engineering',
+    'UK freelance developer',
   ],
-  authors: [{ name: 'Godwin', url: 'https://godwinportfolio.com' }],
-  creator: 'Godwin',
-  publisher: 'Godwin Portfolio',
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL('https://godwinportfolio.com'),
-  alternates: {
-    canonical: '/',
-  },
+  authors: [{ name: site.fullName, url: site.url }],
+  creator: site.fullName,
+  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
-    locale: 'en_US',
-    url: 'https://godwinportfolio.com',
-    title: 'Godwin - AI-Enhanced Full-Stack Developer & Solution Architect',
-    description: 'Professional portfolio showcasing full-stack development, mobile apps, e-commerce solutions, and AI-enhanced development workflows.',
-    siteName: 'Godwin Portfolio',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Godwin - Full-Stack Developer Portfolio',
-      },
-    ],
+    locale: 'en_GB',
+    url: site.url,
+    siteName: `${site.name} — Portfolio`,
+    title: `${site.name} — ${site.role}`,
+    description,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Godwin - AI-Enhanced Full-Stack Developer & Solution Architect',
-    description: 'Professional portfolio showcasing full-stack development, mobile apps, e-commerce solutions, and AI-enhanced development workflows.',
-    images: ['/og-image.png'],
-    creator: '@godwin_dev',
+    title: `${site.name} — ${site.role}`,
+    description,
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  icons: {
-    icon: [
-      { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
-      { url: '/favicon.png', type: 'image/png', sizes: '16x16' },
-    ],
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
-  },
-  verification: {
-    google: 'your-google-verification-code',
-    yandex: 'your-yandex-verification-code',
-    yahoo: 'your-yahoo-verification-code',
-  },
+  robots: { index: true, follow: true },
+  icons: { icon: '/favicon.png', apple: '/favicon.png' },
+};
+
+export const viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+  ],
+};
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.fullName,
+  jobTitle: site.role,
+  url: site.url,
+  email: `mailto:${site.email}`,
+  sameAs: site.socials.map((s) => s.href),
+  knowsAbout: ['Next.js', 'React', 'Node.js', 'React Native', 'TypeScript', 'Cloud infrastructure', 'AI engineering'],
 };
 
 export default function RootLayout({ children }) {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Godwin",
-    "jobTitle": "AI-Enhanced Full-Stack Developer & Solution Architect",
-    "description": "Professional full-stack developer with 4+ years experience in React.js, Vue.js, Next.js, Node.js, and modern web technologies. Specializes in AI-enhanced development workflows.",
-    "url": "https://godwinportfolio.com",
-    "sameAs": [
-      "https://github.com/godwin",
-      "https://linkedin.com/in/godwin",
-      "https://twitter.com/godwin_dev"
-    ],
-    "knowsAbout": [
-      "React.js",
-      "Vue.js", 
-      "Next.js",
-      "Node.js",
-      "JavaScript",
-      "TypeScript",
-      "React Native",
-      "Mobile App Development",
-      "E-commerce Development",
-      "AI-Enhanced Development",
-      "Full-Stack Development",
-      "Web Development"
-    ],
-    "hasOccupation": {
-      "@type": "Occupation",
-      "name": "Full-Stack Developer",
-      "occupationLocation": {
-        "@type": "Place",
-        "name": "Remote"
-      }
-    },
-    "alumniOf": {
-      "@type": "Organization",
-      "name": "Self-Taught Developer"
-    }
-  };
-
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
+    <html lang="en-GB" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+      <body>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData),
-          }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
-      </head>
-      <body className={`${inter.className} bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300`}>
-        <ThemeProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
-        <AnalyticsScript />
       </body>
     </html>
   );

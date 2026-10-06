@@ -1,3 +1,4 @@
+import { refreshSite } from '@/lib/revalidate';
 import { getDatabase } from '@/lib/database';
 
 export async function GET() {
@@ -20,8 +21,9 @@ export async function POST(request) {
     const db = getDatabase();
     const result = db.prepare(
       'INSERT INTO experience (company, position, description, start_date, end_date, current, technologies, achievements) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(company, position, description, start_date, end_date, current, technologies, achievements);
+    ).run(company, position, description, start_date, end_date || null, current ? 1 : 0, technologies || "", achievements || "");
     
+    refreshSite();
     return Response.json({ success: true, id: result.lastInsertRowid });
   } catch (error) {
     console.error('Error creating experience:', error);

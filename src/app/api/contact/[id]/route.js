@@ -2,7 +2,7 @@ import { getDatabase } from '@/lib/database';
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     if (!id) {
       return Response.json({ success: false, error: 'Message ID is required' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const db = getDatabase();
     const result = db.prepare('DELETE FROM contact_messages WHERE id = ?').run(id);

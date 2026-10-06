@@ -2,63 +2,85 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
-}
+/*
+ * Design tokens (RGB triplets so Tailwind can apply alpha).
+ * Neutral zinc base + a single indigo accent. All text pairs meet WCAG 2.2 AA.
+ */
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --surface: 250 250 250;
+    --subtle: 244 244 245;
+    --border: 228 228 231;
+    --input: 161 161 170;
+    --foreground: 9 9 11;
+    --muted: 82 82 91;
+    --accent: 79 70 229;
+    --accent-foreground: 255 255 255;
+    --accent-soft: 238 242 255;
+    --accent-text: 67 56 202;
+    --chart: 79 70 229;
+    --success: 21 128 61;
+    --warning: 180 83 9;
+    --danger: 185 28 28;
+    color-scheme: light;
+  }
 
-body {
-  @apply antialiased;
-}
+  .dark {
+    --background: 9 9 11;
+    --surface: 17 17 19;
+    --subtle: 24 24 27;
+    --border: 39 39 42;
+    --input: 82 82 91;
+    --foreground: 250 250 250;
+    --muted: 161 161 170;
+    --accent: 129 140 248;
+    --accent-foreground: 9 9 11;
+    --accent-soft: 30 27 75;
+    --accent-text: 165 180 252;
+    --chart: 99 102 241; /* validated for dark surface (dataviz lightness band) */
+    --success: 74 222 128;
+    --warning: 251 191 36;
+    --danger: 248 113 113;
+    color-scheme: dark;
+  }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 5rem;
+  }
 
-::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
-}
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
-}
+  ::selection {
+    @apply bg-accent/20;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
-}
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-background;
+  }
 
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-track {
-  @apply bg-gray-800;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  @apply bg-gray-600;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
+  h1, h2, h3, h4 {
+    @apply text-balance font-semibold tracking-tight;
+  }
 }
 
 @layer components {
-  .gradient-text {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  /* Small uppercase label used above section titles */
+  .eyebrow {
+    @apply font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted;
   }
-  
-  .gradient-bg {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600;
+
+  .link {
+    @apply text-accent-text underline decoration-accent/30 underline-offset-4 transition-colors hover:decoration-accent;
   }
-  
-  .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
-  }
-  
-  .button-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl;
-  }
-  
-  .button-secondary {
-    @apply px-6 py-3 border-2 border-blue-600 text-blue-600 dark:text-blue-400 font-semibold rounded-lg hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transform hover:scale-105 transition-all duration-300;
+
+  .skeleton {
+    @apply animate-pulse rounded bg-subtle;
   }
 }
 
@@ -67,12 +89,24 @@ body {
     text-wrap: balance;
   }
 
-  /* Hide scrollbar while keeping scroll functionality */
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

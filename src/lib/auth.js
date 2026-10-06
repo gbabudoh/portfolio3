@@ -1,80 +1,57 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { SESSION_COOKIE, SESSION_TTL_SECONDS, safeEqual, signSession, verifySession } from '@/lib/session';
 
-// In a real production app, you'd want to use environment variables and proper hashing
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'portfolio2024!';
+const DEFAULT_PASSWORD = 'portfolio2024!';
 
-export function hashPassword(password) {
-  // Simple hash function - in production, use bcrypt or similar
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return hash.toString();
-}
-
-export function verifyPassword(inputPassword, storedHash) {
-  return hashPassword(inputPassword) === storedHash;
-}
-
-export function createSession() {
-  const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  
+export function getAdminCredentials() {
   return {
-    sessionId,
-    expiresAt: expiresAt.toISOString(),
-    username: ADMIN_USERNAME
+    username: process.env.ADMIN_USERNAME || 'admin',
+    password: process.env.ADMIN_PASSWORD || DEFAULT_PASSWORD,
+    usingDefaultPassword: !process.env.ADMIN_PASSWORD,
   };
+}
+
+export function checkCredentials(username, password) {
+  const expected = getAdminCredentials();
+  // Production must never accept the built-in default password.
+  if (expected.usingDefaultPassword && process.env.NODE_ENV === 'production') return false;
+  const userOk = safeEqual(username, expected.username);
+  const passOk = safeEqual(password, expected.password);
+  return userOk && passOk;
 }
 
 export async function getSession() {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('admin_session');
-  
-  if (!sessionCookie) {
-    return null;
-  }
-  
-  try {
-    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
-    
-    // Check if session has expired
-    if (new Date(session.expiresAt) < new Date()) {
-      return null;
-    }
-    
-    return session;
-  } catch (error) {
-    return null;
-  }
+  return verifySession(cookieStore.get(SESSION_COOKIE)?.value);
 }
 
 export async function requireAuth() {
   const session = await getSession();
-  
-  if (!session) {
-    redirect('/admin/login');
-  }
-  
+  if (!session) redirect('/admin/login');
   return session;
 }
 
-export async function setSessionCookie(session) {
-  const cookieStore = await cookies();
-  cookieStore.set('admin_session', JSON.stringify(session), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 24 * 60 * 60, // 24 hours
-    path: '/admin'
-  });
+// Cookie helpers operate on the route's NextResponse so every Set-Cookie header
+// (new session + legacy cleanup) is guaranteed to reach the browser.
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  // Root path so the cookie also reaches /api/* routes guarded by middleware.
+  path: '/',
+};
+
+// Older builds scoped an unsigned cookie with the same name to /admin. Browsers send the
+// more specific path first, which would shadow the new cookie, so expire it explicitly.
+const LEGACY_COOKIE_CLEAR = `${SESSION_COOKIE}=; Path=/admin; Max-Age=0; HttpOnly; SameSite=Strict`;
+
+export async function setSessionCookie(response, username) {
+  response.cookies.set(SESSION_COOKIE, await signSession(username), { ...cookieOptions, maxAge: SESSION_TTL_SECONDS });
+  response.headers.append('Set-Cookie', LEGACY_COOKIE_CLEAR);
 }
 
-export async function clearSessionCookie() {
-  const cookieStore = await cookies();
-  cookieStore.delete('admin_session');
+export function clearSessionCookie(response) {
+  response.cookies.set(SESSION_COOKIE, '', { ...cookieOptions, maxAge: 0 });
+  response.headers.append('Set-Cookie', LEGACY_COOKIE_CLEAR);
 }

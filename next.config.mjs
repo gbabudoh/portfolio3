@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allows a separate build output (e.g. CI or verifying a build while `next dev` is running).
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
+    formats: ['image/avif', 'image/webp'],
+  },
+  // better-sqlite3 is a native module; keep it out of the server bundle.
+  serverExternalPackages: ['better-sqlite3'],
   turbopack: {
     rules: {
       '*.sqlite': {

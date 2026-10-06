@@ -10,6 +10,7 @@ let analyticsState = {
   isTracking: false,
   initialized: false,
   lastPageView: 0,
+  lastPagePath: null,
   lastEngagement: 0
 };
 
@@ -39,10 +40,11 @@ function initialize() {
 async function trackPageView(pagePath = window.location.pathname) {
   if (!analyticsState.initialized || !analyticsState.visitorId || !analyticsState.sessionId) return;
   
-  // Rate limiting: only track page views every 5 seconds
+  // De-duplicate repeat views of the same path within 5 seconds
   const now = Date.now();
-  if (now - analyticsState.lastPageView < 5000) return;
+  if (pagePath === analyticsState.lastPagePath && now - analyticsState.lastPageView < 5000) return;
   analyticsState.lastPageView = now;
+  analyticsState.lastPagePath = pagePath;
   
   try {
     const response = await fetch('/api/analytics/track', {

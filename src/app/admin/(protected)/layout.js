@@ -1,19 +1,10 @@
 import { requireAuth } from '@/lib/auth';
-import AdminNavigation from '@/components/admin/AdminNavigation';
+import { AdminShell } from '@/components/admin/admin-shell';
+
+export const dynamic = 'force-dynamic';
 
 export default async function ProtectedAdminLayout({ children }) {
-  // This will redirect to /admin/login if not authenticated
+  // Middleware already guards these routes; this is defence in depth.
   const session = await requireAuth();
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AdminNavigation session={session} />
-      {/* Add left margin to account for sidebar width */}
-      <div className="lg:ml-64">
-        <main className="p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return <AdminShell session={session}>{children}</AdminShell>;
 }
