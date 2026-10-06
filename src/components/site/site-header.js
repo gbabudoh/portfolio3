@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { ArrowUpRight, Download, Menu, X } from 'lucide-react';
 import { mainNav, site } from '@/lib/site';
 import { cn } from '@/lib/cn';
 import { useDialog } from '@/lib/use-dialog';
@@ -14,7 +14,7 @@ function isActive(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SiteHeader() {
+export function SiteHeader({ hasCv = false }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -78,6 +78,19 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1">
           <ThemeToggle />
+          {hasCv && (
+            <ButtonLink
+              href="/cv"
+              external
+              variant="secondary"
+              size="sm"
+              className="ml-2 hidden md:inline-flex"
+              aria-label="Download CV (PDF, opens in a new tab)"
+            >
+              <Download />
+              CV
+            </ButtonLink>
+          )}
           <ButtonLink href="/contact" size="sm" className="ml-2 hidden md:inline-flex">
             Let&apos;s talk
           </ButtonLink>
@@ -145,9 +158,17 @@ export function SiteHeader() {
                 {site.email}
                 <ArrowUpRight className="size-3.5" aria-hidden="true" />
               </a>
-              <ButtonLink href="/contact" size="lg" className="w-full">
-                Let&apos;s talk
-              </ButtonLink>
+              <div className={cn('grid gap-3', hasCv && 'grid-cols-2')}>
+                {hasCv && (
+                  <ButtonLink href="/cv" external variant="secondary" size="lg" aria-label="Download CV (PDF, opens in a new tab)">
+                    <Download />
+                    CV
+                  </ButtonLink>
+                )}
+                <ButtonLink href="/contact" size="lg">
+                  Let&apos;s talk
+                </ButtonLink>
+              </div>
             </div>
           </div>
         </div>

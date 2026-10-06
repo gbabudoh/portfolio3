@@ -84,3 +84,60 @@ export function saveIntegrationSettings(input) {
   save(Object.entries(values));
   return { values: getIntegrationSettings() };
 }
+
+/* ------------------------------------------------------------------ CV */
+
+const CV_KEYS = ['cv_url', 'cv_public_id', 'cv_bytes', 'cv_uploaded_at', 'cv_downloads'];
+
+function readKeys(keys) {
+  const rows = db()
+    .prepare(`SELECT key, value FROM site_settings WHERE key IN (${keys.map(() => '?').join(',')})`)
+    .all(...keys);
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
+function writeKeys(values) {
+  const upsert = db().prepare(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`
+  );
+  db().transaction((entries) => entries.forEach(([k, v]) => upsert.run(k, String(v))))(Object.entries(values));
+}
+
+// Returns null when no CV has been uploaded.
+export function getCv() {
+  const v = readKeys(CV_KEYS);
+  if (!v.cv_url) return null;
+  return {
+    url: v.cv_url,
+    publicId: v.cv_public_id || '',
+    bytes: Number(v.cv_bytes) || 0,
+    uploadedAt: v.cv_uploaded_at || null,
+    downloads: Number(v.cv_downloads) || 0,
+  };
+}
+
+export function saveCv({ url, publicId, bytes }) {
+  writeKeys({
+    cv_url: url,
+    cv_public_id: publicId,
+    cv_bytes: bytes,
+    cv_uploaded_at: new Date().toISOString(),
+    cv_downloads: 0,
+  });
+}
+
+export function clearCv() {
+  db()
+    .prepare(`DELETE FROM site_settings WHERE key IN (${CV_KEYS.map(() => '?').join(',')})`)
+    .run(...CV_KEYS);
+}
+
+export function recordCvDownload() {
+  db()
+    .prepare(
+      `UPDATE site_settings SET value = CAST(value AS INTEGER) + 1, updated_at = CURRENT_TIMESTAMP
+       WHERE key = 'cv_downloads'`
+    )
+    .run();
+}

@@ -6,8 +6,9 @@ const nextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
     formats: ['image/avif', 'image/webp'],
   },
-  // better-sqlite3 is a native module; keep it out of the server bundle.
-  serverExternalPackages: ['better-sqlite3'],
+  // Load these as real Node packages: better-sqlite3 is native, and bundling cloudinary
+  // swaps in a browser 'os' shim that corrupts its multipart uploads.
+  serverExternalPackages: ['better-sqlite3', 'cloudinary'],
   turbopack: {
     rules: {
       '*.sqlite': {

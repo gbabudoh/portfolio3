@@ -2,14 +2,15 @@ import { SiteHeader } from '@/components/site/site-header';
 import { SiteFooter } from '@/components/site/site-footer';
 import AnalyticsScript from '@/components/AnalyticsScript';
 import { TrackingScripts } from '@/components/site/tracking-scripts';
-import { getIntegrationSettings } from '@/lib/settings';
+import { getCv, getIntegrationSettings } from '@/lib/settings';
 
 export default function SiteLayout({ children }) {
   const integrations = getIntegrationSettings();
+  const hasCv = Boolean(getCv());
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <SiteHeader />
+      <SiteHeader hasCv={hasCv} />
       <main id="main" className="flex-1">
         {children}
       </main>
