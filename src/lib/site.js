@@ -11,10 +11,11 @@ export const site = {
   phone: { display: '+44 (0) 7814483083', href: 'tel:+447814483083' },
   location: 'United Kingdom · Remote',
   availability: 'Available for new projects',
+  // Defaults only — the live list is managed in Admin → Settings → Social links.
   socials: [
-    { name: 'GitHub', href: 'https://github.com/gbabudoh', icon: 'github' },
-    { name: 'LinkedIn', href: 'https://linkedin.com/in/gbabudoh', icon: 'linkedin' },
-    { name: 'X (Twitter)', href: 'https://twitter.com/gbabudoh', icon: 'twitter' },
+    { platform: 'github', url: 'https://github.com/gbabudoh', visible: true },
+    { platform: 'linkedin', url: 'https://linkedin.com/in/gbabudoh', visible: true },
+    { platform: 'x', url: 'https://x.com/gbabudoh', visible: true },
   ],
 };
 

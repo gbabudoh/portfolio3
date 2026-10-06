@@ -2,10 +2,11 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { getAdminCredentials, getSession } from '@/lib/auth';
 import { formatDateTime } from '@/lib/format';
 import { mainNav, site } from '@/lib/site';
-import { getCv, getIntegrationSettings } from '@/lib/settings';
+import { getCv, getIntegrationSettings, getSocialLinks } from '@/lib/settings';
 import { AdminPageHeader, Card, CardHeader } from '@/components/admin/primitives';
 import { IntegrationsForm } from '@/components/admin/integrations-form';
 import { CvForm } from '@/components/admin/cv-form';
+import { SocialLinksForm } from '@/components/admin/social-links-form';
 
 export const metadata = { title: 'Settings' };
 
@@ -40,6 +41,7 @@ export default async function SettingsPage() {
   const secret = process.env.SESSION_SECRET || '';
   const integrations = getIntegrationSettings();
   const cv = getCv();
+  const socials = getSocialLinks();
 
   const checks = [
     {
@@ -75,6 +77,11 @@ export default async function SettingsPage() {
         <Card>
           <CardHeader title="CV" description="Upload a PDF to show a “CV” button in the site navigation." />
           <CvForm initial={cv} />
+        </Card>
+
+        <Card>
+          <CardHeader title="Social links" description="Add, reorder or hide the profiles linked from your site." />
+          <SocialLinksForm initial={socials} />
         </Card>
 
         <Card>

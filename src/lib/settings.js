@@ -1,5 +1,7 @@
 // Key/value site settings editable from the admin (e.g. analytics IDs).
 import { getDatabase } from '@/lib/database';
+import { site } from '@/lib/site';
+import { MAX_SOCIAL_LINKS, SOCIAL_PLATFORMS, validateSocialLink } from '@/lib/social-platforms';
 
 // Only IDs are stored — never raw script — and each is strictly validated because
 // it is interpolated into a tracking snippet on every public page.
@@ -140,4 +142,64 @@ export function recordCvDownload() {
        WHERE key = 'cv_downloads'`
     )
     .run();
+}
+
+/* ---------------------------------------------------------- Social links */
+
+const SOCIAL_KEY = 'social_links';
+
+function normaliseSocial(link) {
+  return {
+    platform: String(link.platform || ''),
+    url: String(link.url || '').trim(),
+    visible: link.visible !== false,
+  };
+}
+
+// All links (including hidden ones), in display order. Falls back to the defaults
+// in site.js until the list is first saved from the admin.
+export function getSocialLinks() {
+  const row = db().prepare('SELECT value FROM site_settings WHERE key = ?').get(SOCIAL_KEY);
+  let list = site.socials;
+  if (row) {
+    try {
+      list = JSON.parse(row.value);
+    } catch {
+      list = site.socials;
+    }
+  }
+  return list
+    .map(normaliseSocial)
+    .filter((l) => SOCIAL_PLATFORMS[l.platform] && !validateSocialLink(l))
+    .map((l) => {
+      // Keep legacy twitter.com links working but display the current domain.
+      if (l.platform === 'x') l.url = l.url.replace(/^https:\/\/(www\.)?twitter\.com\//, 'https://x.com/');
+      return l;
+    });
+}
+
+// Links shown on the public site, with display labels.
+export function getVisibleSocialLinks() {
+  return getSocialLinks()
+    .filter((l) => l.visible)
+    .map((l) => ({ ...l, label: SOCIAL_PLATFORMS[l.platform].label }));
+}
+
+// Returns { values } on success or { errors: { [index]: message } }.
+export function saveSocialLinks(input) {
+  if (!Array.isArray(input)) return { errors: { form: 'Invalid data.' } };
+  if (input.length > MAX_SOCIAL_LINKS) return { errors: { form: `Up to ${MAX_SOCIAL_LINKS} links.` } };
+
+  const list = input.map(normaliseSocial);
+  const errors = {};
+  list.forEach((link, i) => {
+    const error = validateSocialLink(link);
+    if (error) errors[i] = error;
+  });
+  if (Object.keys(errors).length) return { errors };
+
+  // Store the parser-normalised URL (percent-encodes characters like < and >).
+  const cleaned = list.map((l) => ({ ...l, url: new URL(l.url).href }));
+  writeKeys({ [SOCIAL_KEY]: JSON.stringify(cleaned) });
+  return { values: getSocialLinks() };
 }

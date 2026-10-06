@@ -1,5 +1,6 @@
 import { ChevronRight, Mail, MapPin, Phone } from 'lucide-react';
 import { site } from '@/lib/site';
+import { getVisibleSocialLinks } from '@/lib/settings';
 import { Icon } from '@/components/ui/icon';
 import { ButtonLink } from '@/components/ui/button';
 import { PageHeader, Section } from '@/components/site/blocks';
@@ -18,6 +19,8 @@ const channels = [
 ];
 
 export default function ContactPage() {
+  const socials = getVisibleSocialLinks();
+
   return (
     <>
       <PageHeader
@@ -85,24 +88,26 @@ export default function ContactPage() {
               </ul>
             </div>
 
-            <div className="space-y-4 border-t border-border pt-8">
-              <h2 className="eyebrow">Elsewhere</h2>
-              <ul className="flex gap-3">
-                {site.socials.map((social) => (
-                  <li key={social.name}>
-                    <a
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${social.name} (opens in a new tab)`}
-                      className="grid size-11 place-items-center rounded-md border border-border text-muted transition-colors hover:bg-subtle hover:text-foreground active:bg-subtle"
-                    >
-                      <Icon name={social.icon} className="size-5" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {socials.length > 0 && (
+              <div className="space-y-4 border-t border-border pt-8">
+                <h2 className="eyebrow">Elsewhere</h2>
+                <ul className="flex flex-wrap gap-3">
+                  {socials.map((social) => (
+                    <li key={social.url}>
+                      <a
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${social.label} (opens in a new tab)`}
+                        className="grid size-11 place-items-center rounded-md border border-border text-muted transition-colors hover:bg-subtle hover:text-foreground active:bg-subtle"
+                      >
+                        <Icon name={social.platform} className="size-5" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </aside>
         </div>
       </Section>

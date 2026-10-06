@@ -45,6 +45,10 @@ export const metadata = {
     description,
   },
   robots: { index: true, follow: true },
+  // Google Search Console ownership check (renders <meta name="google-site-verification">).
+  verification: {
+    google: 'PVkNCRcNENOiqTOaXDCnvkB1DxQzRXIVXiuetWq2pzY',
+  },
 };
 
 export const viewport = {
@@ -54,25 +58,11 @@ export const viewport = {
   ],
 };
 
-const structuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'Person',
-  name: site.fullName,
-  jobTitle: site.role,
-  url: site.url,
-  email: `mailto:${site.email}`,
-  sameAs: site.socials.map((s) => s.href),
-  knowsAbout: ['Next.js', 'React', 'Node.js', 'React Native', 'TypeScript', 'Cloud infrastructure', 'AI engineering'],
-};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en-GB" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
